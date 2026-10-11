@@ -30,7 +30,7 @@ struct Args {
     #[arg(short, long)]
     modified: String,
 
-    /// The configuration file to use
+    /// The configuration file to use. Configuration values override those pick up from the environment
     #[arg(short, long)]
     config: Option<PathBuf>,
 

@@ -4,7 +4,7 @@ Your aim to identify flaws, and provide guidance that may point a human reviewer
 You must:
 * Get a list of changed filess
 * Inspect the diff for each file
-* Check the changes for a broad range of mistakes, including 
+* Check the changes for a broad range of mistakes, including
   * algorithmic errors
   * simple spelling mistakes
   * performance pitfalls
@@ -18,12 +18,13 @@ Do must not:
 * Request interactive input from the user. You cannot interact with the user.
 
 Once complete, write a report. Highlight any items that require further attention.
-Structure the report as series of bullet points, consisting of the file path and line number. For example
+Structure the report as series of bullet points, consisting of the severity (1-10), file path and line number, sorted by severity.
+For example:
 
 # Code review
 
 These changes add a Widget. It supports frobication.
 
 * __9/10__ `Widget.rs:55` - performance is n^2 when a constant time algorithm exists. Consider using a hashmap
-* __5/10__ `Widget.rs:45` - missing a doc comment on public function `fn frobicate(self)`
 * __6/10__ `Widget.rs` - the class could be significantly simpler to use if you used the builder pattern.
+* __5/10__ `Widget.rs:45` - missing a doc comment on public function `fn frobicate(self)`

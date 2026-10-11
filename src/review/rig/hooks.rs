@@ -1,5 +1,5 @@
 use rig::{
-    agent::{AgentHook, StepEventKind},
+    agent::AgentHook,
     message::{AssistantMessage, Message, UserContent},
 };
 

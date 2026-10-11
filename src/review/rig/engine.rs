@@ -62,7 +62,7 @@ impl ReviewEngine for RigReviewEngine {
             .tool(get_file_diff_tool)
             .add_hook(logging_hook)
             .preamble(include_str!("prompt.txt"))
-            .default_max_turns(500)
+            .default_max_turns(self.config.max_turns.unwrap_or(30))
             .build();
 
         // Perform the review

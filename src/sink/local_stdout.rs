@@ -1,3 +1,5 @@
+use tokio::io::{self, AsyncWriteExt};
+
 use crate::sink::base::ReviewSink;
 
 pub struct LocalStdoutSink {}
@@ -11,7 +13,9 @@ impl LocalStdoutSink {
 #[async_trait::async_trait]
 impl ReviewSink for LocalStdoutSink {
     async fn output(&self, report: String) -> Result<(), crate::error::RigReviewError> {
-        print!("{report}");
+        let mut stdout = io::stdout();
+        stdout.write_all(report.as_bytes()).await?;
+        stdout.flush().await?;
         Ok(())
     }
 }

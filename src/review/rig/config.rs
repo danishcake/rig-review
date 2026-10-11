@@ -11,4 +11,7 @@ pub struct RigReviewEngineConfig {
 
     /// The model to review with
     pub model: String,
+
+    /// The maximum number of turns. Defaults to 30
+    pub max_turns: Option<usize>,
 }

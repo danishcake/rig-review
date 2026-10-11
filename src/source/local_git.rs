@@ -1,9 +1,9 @@
-use std::path::PathBuf;
+use std::{path::PathBuf, sync::Arc};
 
 use gix::Repository;
 use gix::object::tree::diff::ChangeDetached;
 use gix::utils::AsBStr;
-use tokio::sync::Mutex;
+use tokio::{sync::Mutex, task::spawn_blocking};
 
 use crate::{
     error::RigReviewError, source::base::ReviewSource, util::gix_utils::ChangeDetachedUtils,
@@ -11,7 +11,7 @@ use crate::{
 
 /// A review source that is backed by a local git repository
 pub struct LocalGitReviewSource {
-    repository: Mutex<Repository>,
+    repository: Arc<Mutex<Repository>>,
     changes: Vec<ChangeDetached>,
 }
 
@@ -41,7 +41,7 @@ impl LocalGitReviewSource {
         };
 
         Ok(LocalGitReviewSource {
-            repository: Mutex::new(repository),
+            repository: Arc::new(Mutex::new(repository)),
             changes,
         })
     }
@@ -58,34 +58,53 @@ impl LocalGitReviewSource {
 #[async_trait::async_trait]
 impl ReviewSource for LocalGitReviewSource {
     async fn changed_files(&self) -> Vec<String> {
-        // Find all changed files
-        self.changes
-            .iter()
-            .map(|change| change.location().to_string())
-            .collect()
+        let changes = self.changes.clone();
+
+        spawn_blocking(move || {
+            // Find all changed files
+            changes
+                .iter()
+                .map(|change| change.location().to_string())
+                .collect()
+        })
+        .await
+        .expect("failed to collect changed files")
     }
 
     async fn changes(&self, file: &str) -> Result<String, RigReviewError> {
-        let change = self.find_change(file)?;
-        let repository = self.repository.lock().await;
-        change.get_diff(&repository)
+        let change = self.find_change(file)?.clone();
+        let repository = self.repository.clone().lock_owned().await;
+
+        spawn_blocking(move || change.get_diff(&repository))
+            .await
+            .expect("failed to compute file diff")
     }
 
     async fn original_file(&self, file: &str) -> Result<String, RigReviewError> {
-        let change = self.find_change(file)?;
-        let repository = self.repository.lock().await;
-        let contents = change.get_initial_contents(&repository)?;
-        Ok(contents
-            .map(|data| String::from_utf8_lossy(&data).into_owned())
-            .unwrap_or(String::new()))
+        let change = self.find_change(file)?.clone();
+        let repository = self.repository.clone().lock_owned().await;
+
+        spawn_blocking(move || {
+            let contents = change.get_initial_contents(&repository)?;
+            Ok(contents
+                .map(|data| String::from_utf8_lossy(&data).into_owned())
+                .unwrap_or(String::new()))
+        })
+        .await
+        .expect("failed to read original file")
     }
 
     async fn modified_file(&self, file: &str) -> Result<String, RigReviewError> {
-        let change = self.find_change(file)?;
-        let repository = self.repository.lock().await;
-        let contents = change.get_modified_contents(&repository)?;
-        Ok(contents
-            .map(|data| String::from_utf8_lossy(&data).into_owned())
-            .unwrap_or(String::new()))
+        let change = self.find_change(file)?.clone();
+        let repository = self.repository.clone().lock_owned().await;
+
+        spawn_blocking(move || {
+            let contents = change.get_modified_contents(&repository)?;
+            Ok(contents
+                .map(|data| String::from_utf8_lossy(&data).into_owned())
+                .unwrap_or(String::new()))
+        })
+        .await
+        .expect("failed to read modified file")
     }
 }
