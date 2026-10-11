@@ -3,6 +3,7 @@ use std::path::PathBuf;
 use gix::Repository;
 use gix::object::tree::diff::ChangeDetached;
 use gix::utils::AsBStr;
+use tokio::sync::Mutex;
 
 use crate::{
     error::RigReviewError, source::base::ReviewSource, util::gix_utils::ChangeDetachedUtils,
@@ -10,7 +11,7 @@ use crate::{
 
 /// A review source that is backed by a local git repository
 pub struct LocalGitReviewSource {
-    repository: Repository,
+    repository: Mutex<Repository>,
     changes: Vec<ChangeDetached>,
 }
 
@@ -40,7 +41,7 @@ impl LocalGitReviewSource {
         };
 
         Ok(LocalGitReviewSource {
-            repository,
+            repository: Mutex::new(repository),
             changes,
         })
     }
@@ -54,8 +55,9 @@ impl LocalGitReviewSource {
     }
 }
 
+#[async_trait::async_trait]
 impl ReviewSource for LocalGitReviewSource {
-    fn changed_files(&self) -> Vec<String> {
+    async fn changed_files(&self) -> Vec<String> {
         // Find all changed files
         self.changes
             .iter()
@@ -63,22 +65,25 @@ impl ReviewSource for LocalGitReviewSource {
             .collect()
     }
 
-    fn changes(&self, file: &str) -> Result<String, RigReviewError> {
+    async fn changes(&self, file: &str) -> Result<String, RigReviewError> {
         let change = self.find_change(file)?;
-        change.get_diff(&self.repository)
+        let repository = self.repository.lock().await;
+        change.get_diff(&repository)
     }
 
-    fn original_file(&self, file: &str) -> Result<String, RigReviewError> {
+    async fn original_file(&self, file: &str) -> Result<String, RigReviewError> {
         let change = self.find_change(file)?;
-        let contents = change.get_initial_contents(&self.repository)?;
+        let repository = self.repository.lock().await;
+        let contents = change.get_initial_contents(&repository)?;
         Ok(contents
             .map(|data| String::from_utf8_lossy(&data).into_owned())
             .unwrap_or(String::new()))
     }
 
-    fn modified_file(&self, file: &str) -> Result<String, RigReviewError> {
+    async fn modified_file(&self, file: &str) -> Result<String, RigReviewError> {
         let change = self.find_change(file)?;
-        let contents = change.get_modified_contents(&self.repository)?;
+        let repository = self.repository.lock().await;
+        let contents = change.get_modified_contents(&repository)?;
         Ok(contents
             .map(|data| String::from_utf8_lossy(&data).into_owned())
             .unwrap_or(String::new()))

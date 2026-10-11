@@ -1,17 +1,21 @@
 //! The base source trait
 
+use async_trait::async_trait;
+
 use crate::error::RigReviewError;
 
-pub trait ReviewSource {
+/// A source of a diff to review
+#[async_trait]
+pub trait ReviewSource: Send + Sync {
     /// List changed files
-    fn changed_files(&self) -> Vec<String>;
+    async fn changed_files(&self) -> Vec<String>;
 
     /// List changes for a file, represented as a diff
-    fn changes(&self, file: &str) -> Result<String, RigReviewError>;
+    async fn changes(&self, file: &str) -> Result<String, RigReviewError>;
 
     /// Gets the original file contents
-    fn original_file(&self, file: &str) -> Result<String, RigReviewError>;
+    async fn original_file(&self, file: &str) -> Result<String, RigReviewError>;
 
     /// Gets the modified file contents
-    fn modified_file(&self, file: &str) -> Result<String, RigReviewError>;
+    async fn modified_file(&self, file: &str) -> Result<String, RigReviewError>;
 }
