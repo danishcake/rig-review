@@ -8,7 +8,7 @@ use crate::error::RigReviewError;
 #[async_trait]
 pub trait ReviewSource: Send + Sync {
     /// List changed files
-    async fn changed_files(&self) -> Vec<String>;
+    async fn changed_files(&self) -> Result<Vec<String>, RigReviewError>;
 
     /// List changes for a file, represented as a diff
     async fn changes(&self, file: &str) -> Result<String, RigReviewError>;

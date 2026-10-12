@@ -57,15 +57,15 @@ impl LocalGitReviewSource {
 
 #[async_trait::async_trait]
 impl ReviewSource for LocalGitReviewSource {
-    async fn changed_files(&self) -> Vec<String> {
+    async fn changed_files(&self) -> Result<Vec<String>, RigReviewError> {
         let changes = self.changes.clone();
 
         spawn_blocking(move || {
             // Find all changed files
-            changes
+            Ok(changes
                 .iter()
                 .map(|change| change.location().to_string())
-                .collect()
+                .collect())
         })
         .await
         .expect("failed to collect changed files")

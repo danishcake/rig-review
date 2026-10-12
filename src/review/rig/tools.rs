@@ -49,7 +49,10 @@ impl Tool for GetChangedFilesTool {
         _args: Self::Args,
     ) -> Result<Self::Output, Self::Error> {
         let review_source = self.review_source.lock().await;
-        Ok(review_source.changed_files().await)
+        review_source
+            .changed_files()
+            .await
+            .map_err(|e| ToolExecutionError::from_error(e))
     }
 }
 

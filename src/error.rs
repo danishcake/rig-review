@@ -1,6 +1,13 @@
+use std::string::FromUtf8Error;
+
 use config::ConfigError;
+use gitlab::{
+    GitlabError, RestError,
+    api::{ApiError, projects::repository::files::FileRawBuilderError},
+};
 use gix::Error as GixError;
 use rig::{error::ProviderError, run::PromptError};
+use url::ParseError;
 
 #[derive(thiserror::Error, Debug)]
 pub enum RigReviewError {
@@ -11,7 +18,25 @@ pub enum RigReviewError {
     GitError(#[from] GixError),
 
     #[error(transparent)]
+    GitlabError(#[from] GitlabError),
+
+    #[error(transparent)]
+    GitlabApiRestError(#[from] ApiError<RestError>),
+
+    #[error(transparent)]
+    GitlabApiRawError(#[from] FileRawBuilderError),
+
+    #[error(transparent)]
     ConfigError(#[from] ConfigError),
+
+    #[error("missing configuration key: {0}")]
+    MissingConfiguration(String),
+
+    #[error("merge request URL '{0}' is not child of base url '{1}'")]
+    MergeRequestOnDifferentServer(String, String),
+
+    #[error("merge request URL '{0}' did not match expected structure ")]
+    MergeRequestUrlStructureIncorrect(String),
 
     #[error(transparent)]
     Io(#[from] std::io::Error),
@@ -19,9 +44,12 @@ pub enum RigReviewError {
     #[error(transparent)]
     PromptError(#[from] PromptError),
 
+    #[error(transparent)]
+    UrlParseError(#[from] ParseError),
+
     #[error("file is not part of the diff: {0}")]
     FileNotChanged(String),
 
-    #[error("mutex was poisoned")]
-    MutexPoisoned,
+    #[error("file could not be decoded as UTF-8: {0}")]
+    FileNotUtf8Error(#[from] FromUtf8Error),
 }

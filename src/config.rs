@@ -3,19 +3,23 @@ use std::path::{Path, PathBuf};
 use config::{Environment, File};
 use serde::Deserialize;
 
-use crate::{error::RigReviewError, review::rig::config::RigReviewEngineConfig};
+use crate::{
+    error::RigReviewError, review::rig::config::RigReviewEngineConfig,
+    source::gitlab_mr::config::GitlabMergeRequestReviewSourceConfig,
+};
 
 #[derive(Debug, Deserialize)]
 pub struct Config {
     // TODO: Add logging
     pub rig_review_engine: RigReviewEngineConfig,
+    pub gitlab: Option<GitlabMergeRequestReviewSourceConfig>,
 }
 
 impl Config {
     pub fn new(explicit_file: &Option<PathBuf>) -> Result<Self, RigReviewError> {
         let mut config_builder = config::Config::builder()
             // Load config from environment
-            .add_source(Environment::with_prefix("RIG_REVIEW"));
+            .add_source(Environment::with_prefix("RIG_REVIEW").prefix_separator("__"));
 
         // Load the local config file, if present
         if let Some(local_file) = Config::find_local_config() {
