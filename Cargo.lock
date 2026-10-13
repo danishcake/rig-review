@@ -6820,6 +6820,7 @@ dependencies = [
  "async-trait",
  "clap",
  "config",
+ "futures-util",
  "gitlab",
  "gix",
  "regex",

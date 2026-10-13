@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
+use futures_util::StreamExt;
 use tokio::sync::Mutex;
 
 use crate::{
@@ -18,6 +19,7 @@ use crate::{
 };
 
 use rig::{AgentBuilder, providers::openai::OpenAIConfig};
+use rig::{ProviderError, agent::MultiTurnStreamItem};
 
 pub struct RigReviewEngine {
     config: RigReviewEngineConfig,
@@ -65,9 +67,27 @@ impl ReviewEngine for RigReviewEngine {
             .default_max_turns(self.config.max_turns.unwrap_or(30))
             .build();
 
-        // Perform the review
-        let response = agent.prompt("Review changes").await?;
-        let report = response.output();
+        // Perform the review. We do this in a streaming fashion so we can observe the tokens as they
+        // arrive. Only the final turn
+        let mut stream = agent.prompt("Review changes").stream();
+        let mut response = None;
+
+        // Iterate until we get the final reponse
+        while let Some(item) = stream.next().await {
+            match item? {
+                MultiTurnStreamItem::FinalResponse(final_response) => {
+                    response = Some(final_response);
+                    break;
+                }
+                _ => {}
+            }
+        }
+
+        let report = response
+            .ok_or_else(|| {
+                ProviderError::Response("stream ended before a final response was received".into())
+            })?
+            .output();
 
         let sink = sink.lock().await;
         sink.output(report).await?;

@@ -1,52 +1,83 @@
-use rig::{
-    agent::AgentHook,
-    message::{AssistantMessage, Message, UserContent},
-};
+use std::io::Write;
+
+use rig::{agent::AgentHook, streaming::Part};
+use tracing::Level;
+
+use crate::logging::is_level_enabled;
 
 /// Logs significant events
-pub struct LoggingHook {}
+pub struct LoggingHook {
+    active_stream_part: std::sync::Mutex<Option<Part>>,
+}
 
 impl LoggingHook {
     pub fn new() -> Self {
-        LoggingHook {}
+        LoggingHook {
+            active_stream_part: std::sync::Mutex::new(None),
+        }
+    }
+
+    fn write_stderr(&self, level: Level, output: &str) {
+        if !is_level_enabled(&level) {
+            return;
+        }
+
+        let mut stderr = std::io::stderr().lock();
+        if let Err(error) = stderr
+            .write_all(output.as_bytes())
+            .and_then(|()| stderr.flush())
+        {
+            tracing::error!("Failed to write streamed output to stderr: {error}");
+        }
+    }
+
+    fn start_stream_part(&self, level: Level, part: Part, label: &str) {
+        if !is_level_enabled(&level) {
+            return;
+        }
+
+        let mut active_part = self
+            .active_stream_part
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        if *active_part == Some(part) {
+            return;
+        }
+
+        *active_part = Some(part);
+        self.write_stderr(Level::DEBUG, &format!("\n[{label}] "));
+    }
+
+    fn write_text_delta(&self, delta: &str) {
+        let mut active_part = self
+            .active_stream_part
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        if active_part.take().is_some() {
+            self.write_stderr(Level::INFO, &format!("\n{delta}"));
+        } else {
+            self.write_stderr(Level::INFO, delta);
+        }
+    }
+
+    fn finish_stream_part(&self) {
+        let mut active_part = self
+            .active_stream_part
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        *active_part = None;
+        self.write_stderr(Level::DEBUG, "\n");
     }
 }
 
 impl AgentHook for LoggingHook {
-    async fn on_completion_call(
-        &self,
-        _ctx: &rig::agent::HookContext,
-        event: rig::agent::CompletionCallEvent<'_>,
-    ) -> rig::agent::CompletionCallAction {
-        match &event.prompt {
-            Message::User { content } => {
-                let content: Vec<_> = content
-                    .iter()
-                    .map(|f| match f {
-                        UserContent::Text(text) => text.text.clone(),
-                        other => format!("{:?}", other),
-                    })
-                    .collect();
-
-                tracing::debug!("Completion call user: {:?}", content.join(","));
-            }
-            Message::Assistant(AssistantMessage { content, .. }) => {
-                tracing::debug!("Completion call assistant: {:?}", content);
-            }
-            Message::System { content } => {
-                tracing::debug!("Completion call system: {:?}", content);
-            }
-        };
-
-        rig::agent::CompletionCallAction::Continue
-    }
-
     async fn on_model_turn_finished(
         &self,
         _ctx: &rig::agent::HookContext,
         event: rig::agent::ModelTurnFinished<'_>,
     ) -> rig::agent::ModelTurnAction {
-        tracing::debug!("Model turn finished: {:?}", event.content);
+        self.finish_stream_part();
+        tracing::trace!("Model turn finished: {:?}", event.content);
         rig::agent::ModelTurnAction::Continue
     }
 
@@ -59,54 +90,36 @@ impl AgentHook for LoggingHook {
         None
     }
 
-    // async fn on_text_delta(
-    //     &self,
-    //     _ctx: &rig::agent::HookContext,
-    //     _event: rig::agent::TextDelta<'_>,
-    // ) -> rig::agent::ObservationAction {
-    //     rig::agent::ObservationAction::Continue
-    // }
+    async fn on_text_delta(
+        &self,
+        _ctx: &rig::agent::HookContext,
+        event: rig::agent::TextDelta<'_>,
+    ) -> rig::agent::ObservationAction {
+        self.write_text_delta(event.delta);
+        rig::agent::ObservationAction::Continue
+    }
 
-    // async fn on_reasoning_delta(
-    //     &self,
-    //     _ctx: &rig::agent::HookContext,
-    //     _event: rig::agent::ReasoningDelta<'_>,
-    // ) -> rig::agent::ObservationAction {
-    //     rig::agent::ObservationAction::Continue
-    // }
+    async fn on_reasoning_delta(
+        &self,
+        _ctx: &rig::agent::HookContext,
+        event: rig::agent::ReasoningDelta<'_>,
+    ) -> rig::agent::ObservationAction {
+        self.start_stream_part(Level::INFO, event.part, "Thinking");
+        self.write_stderr(Level::INFO, event.delta);
+        rig::agent::ObservationAction::Continue
+    }
 
-    // async fn on_tool_call_delta(
-    //     &self,
-    //     _ctx: &rig::agent::HookContext,
-    //     _event: rig::agent::ToolCallDelta<'_>,
-    // ) -> rig::agent::ObservationAction {
-    //     rig::agent::ObservationAction::Continue
-    // }
-
-    // async fn on_dispatch(
-    //     &self,
-    //     _ctx: &rig::agent::HookContext,
-    //     _event: rig::agent::DispatchEvent<'_>,
-    // ) -> rig::agent::DispatchAction {
-    //     rig::agent::DispatchAction::Proceed
-    // }
-
-    // async fn on_outcome(
-    //     &self,
-    //     _ctx: &rig::agent::HookContext,
-    //     _event: rig::agent::OutcomeEvent<'_>,
-    // ) -> rig::agent::OutcomeAction {
-    //     rig::agent::OutcomeAction::Proceed
-    // }
-
-    // fn observes(&self, kind: rig::agent::StepEventKind) -> bool {
-    //     !matches!(
-    //         kind,
-    //         StepEventKind::EmbedDispatch
-    //             | StepEventKind::RerankDispatch
-    //             | StepEventKind::MemoryDispatch
-    //             | StepEventKind::RetrieveDispatch
-    //             | StepEventKind::CustomDispatch
-    //     )
-    // }
+    async fn on_tool_call_delta(
+        &self,
+        _ctx: &rig::agent::HookContext,
+        event: rig::agent::ToolCallDelta<'_>,
+    ) -> rig::agent::ObservationAction {
+        self.start_stream_part(
+            Level::INFO,
+            event.part,
+            &format!("Tool call {}", event.tool_name),
+        );
+        self.write_stderr(Level::DEBUG, event.delta);
+        rig::agent::ObservationAction::Continue
+    }
 }
