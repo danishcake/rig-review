@@ -5,14 +5,14 @@ use serde::Deserialize;
 
 use crate::{
     error::RigReviewError, review::rig::config::RigReviewEngineConfig,
-    source::gitlab_mr::config::GitlabMergeRequestReviewSourceConfig,
+    source::gitlab::config::GitlabReviewSourceConfig,
 };
 
 #[derive(Debug, Deserialize)]
 pub struct Config {
     // TODO: Add logging
     pub rig_review_engine: RigReviewEngineConfig,
-    pub gitlab: Option<GitlabMergeRequestReviewSourceConfig>,
+    pub gitlab: Option<GitlabReviewSourceConfig>,
 }
 
 impl Config {

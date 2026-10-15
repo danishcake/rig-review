@@ -40,6 +40,12 @@ impl LocalGitReviewSource {
             repository.diff_tree_to_tree(Some(&base_tree), Some(&modified_tree), None)?
         };
 
+        // Remove directories
+        let changes = changes
+            .into_iter()
+            .filter(|change| !change.entry_mode().is_tree())
+            .collect();
+
         Ok(LocalGitReviewSource {
             repository: Arc::new(Mutex::new(repository)),
             changes,

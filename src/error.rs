@@ -32,9 +32,6 @@ pub enum RigReviewError {
     #[error("missing configuration key: {0}")]
     MissingConfiguration(String),
 
-    #[error("merge request URL '{0}' is not child of base url '{1}'")]
-    MergeRequestOnDifferentServer(String, String),
-
     #[error("merge request URL '{0}' did not match expected structure ")]
     MergeRequestUrlStructureIncorrect(String),
 
@@ -46,6 +43,9 @@ pub enum RigReviewError {
 
     #[error(transparent)]
     UrlParseError(#[from] ParseError),
+
+    #[error("url invalid: {0}")]
+    InvalidUrl(String),
 
     #[error("file is not part of the diff: {0}")]
     FileNotChanged(String),

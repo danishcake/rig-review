@@ -13,8 +13,8 @@ use rig_review::{
     review::{base::ReviewEngine, rig::engine::RigReviewEngine},
     sink::{base::ReviewSink, local_stdout::LocalStdoutSink},
     source::{
-        base::ReviewSource, gitlab_mr::gitlab::GitlabMergeRequestReviewSource,
-        local::local_git::LocalGitReviewSource,
+        base::ReviewSource, gitlab::gitlab_review_source::GitlabReviewSource,
+        local::local_git_review_source::LocalGitReviewSource,
     },
 };
 use tokio::sync::Mutex;
@@ -54,7 +54,7 @@ enum Source {
 
     /// A remote gitlab instance.
     /// Output will output as comments on the merge request
-    GitlabMr {
+    Gitlab {
         /// The URL for a merge request
         #[arg(short, long)]
         url: String,
@@ -88,10 +88,10 @@ async fn main() -> Result<()> {
             let sink: Arc<Mutex<dyn ReviewSink>> = Arc::new(Mutex::new(LocalStdoutSink::new()));
             (source, sink)
         }
-        Source::GitlabMr { url } => {
+        Source::Gitlab { url } => {
             let gitlab_config = config.gitlab.context("Gitlab configuration missing")?;
             let source: Arc<Mutex<dyn ReviewSource>> = Arc::new(Mutex::new(
-                GitlabMergeRequestReviewSource::new(url, gitlab_config).await?,
+                GitlabReviewSource::new(&url, &gitlab_config).await?,
             ));
             let sink: Arc<Mutex<dyn ReviewSink>> = Arc::new(Mutex::new(LocalStdoutSink::new()));
             (source, sink)

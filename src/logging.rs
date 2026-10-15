@@ -27,12 +27,11 @@ pub fn initialise_logging(verbose: u8) {
 
     let filter = Targets::new()
         // Log errors from dependencies
-        .with_default(LevelFilter::ERROR)
+        .with_default(LevelFilter::WARN)
         // Log more from this crate
         .with_target(env!("CARGO_CRATE_NAME"), max_level);
 
     tracing_subscriber::registry()
-        //.with(tracing_subscriber::fmt::layer().with_filter(filter))
         .with(filter)
         .with(subscriber)
         .init();

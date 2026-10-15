@@ -1,3 +1,3 @@
 pub mod base;
-pub mod gitlab_mr;
+pub mod gitlab;
 pub mod local;
