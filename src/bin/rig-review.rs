@@ -11,7 +11,7 @@ use rig_review::{
     config::Config,
     logging::initialise_logging,
     review::{base::ReviewEngine, rig::engine::RigReviewEngine},
-    sink::{base::ReviewSink, local_stdout::LocalStdoutSink},
+    sink::{base::ReviewSink, local_stdout::local_stdout_sink::LocalStdoutSink},
     source::{
         base::ReviewSource, gitlab::gitlab_review_source::GitlabReviewSource,
         local::local_git_review_source::LocalGitReviewSource,
