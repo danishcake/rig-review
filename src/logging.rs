@@ -1,13 +1,15 @@
-use tracing::{Level, level_filters::LevelFilter};
+use tracing::Level;
 use tracing_subscriber::{filter::Targets, layer::SubscriberExt, util::SubscriberInitExt};
 
 pub fn initialise_logging(verbose: u8) {
-    let max_level = match verbose {
-        0 => Level::ERROR,
-        1 => Level::WARN,
-        2 => Level::INFO,
-        3 => Level::DEBUG,
-        _ => Level::TRACE,
+    let (dep_level, crate_level) = match verbose {
+        0 => (Level::WARN, Level::WARN),
+        1 => (Level::WARN, Level::INFO),
+        2 => (Level::WARN, Level::DEBUG),
+        3 => (Level::WARN, Level::TRACE),
+        4 => (Level::INFO, Level::TRACE),
+        5 => (Level::DEBUG, Level::TRACE),
+        _ => (Level::TRACE, Level::TRACE),
     };
 
     // Setup logging
@@ -27,9 +29,9 @@ pub fn initialise_logging(verbose: u8) {
 
     let filter = Targets::new()
         // Log errors from dependencies
-        .with_default(LevelFilter::WARN)
+        .with_default(dep_level)
         // Log more from this crate
-        .with_target(env!("CARGO_CRATE_NAME"), max_level);
+        .with_target(env!("CARGO_CRATE_NAME"), crate_level);
 
     tracing_subscriber::registry()
         .with(filter)
