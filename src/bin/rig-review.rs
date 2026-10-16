@@ -90,10 +90,12 @@ async fn main() -> Result<()> {
         }
         Source::Gitlab { url } => {
             let gitlab_config = config.gitlab.context("Gitlab configuration missing")?;
-            let source: Arc<Mutex<dyn ReviewSource>> = Arc::new(Mutex::new(
-                GitlabReviewSource::new(&url, &gitlab_config).await?,
-            ));
-            let sink: Arc<Mutex<dyn ReviewSink>> = Arc::new(Mutex::new(LocalStdoutSink::new()));
+            let source = GitlabReviewSource::new(&url, &gitlab_config).await?;
+            let sink = source.create_sink();
+
+            let source: Arc<Mutex<dyn ReviewSource>> = Arc::new(Mutex::new(source));
+            let sink: Arc<Mutex<dyn ReviewSink>> = Arc::new(Mutex::new(sink));
+
             (source, sink)
         }
     };

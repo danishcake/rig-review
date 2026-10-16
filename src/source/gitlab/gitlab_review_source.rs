@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use crate::{
     error::RigReviewError,
+    sink::gitlab::gitlab_review_sink::GitlabReviewSink,
     source::{base::ReviewSource, gitlab::config::GitlabReviewSourceConfig},
 };
 
@@ -193,6 +194,11 @@ impl GitlabReviewSource {
         let project = &caps["project"];
         let iid: u64 = caps["iid"].parse().unwrap();
         Ok((project.to_owned(), iid))
+    }
+
+    /// Creates a corresponding sink
+    pub fn create_sink(&self) -> GitlabReviewSink {
+        GitlabReviewSink::new(self.project_path.clone(), self.mr_iid, self.client.clone())
     }
 }
 

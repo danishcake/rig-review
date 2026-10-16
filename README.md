@@ -41,7 +41,8 @@ host =  "https://gitlab.com"
 # If using legacy coarse grained tokens then it the 'api' scope
 # If using fine grained tokens then it needs the following scopes:
 # Group and Projects/Projects/project.read
-# Group and Projects/Projects/merge-request.[read, update]
+# Group and Projects/Projects/merge-request.read
+# Group and Projects/Project planning/work-item.create
 # User/System access/user.read
 api_token = "glpat-..."
 ```
