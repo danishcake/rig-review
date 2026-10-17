@@ -6,7 +6,7 @@
 use std::{path::PathBuf, sync::Arc};
 
 use anyhow::{Context, Result};
-use clap::{Parser, Subcommand};
+use clap::{Parser, Subcommand, ValueEnum};
 use rig_review::{
     config::Config,
     logging::initialise_logging,
@@ -34,6 +34,12 @@ struct Args {
     source: Source,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]
+enum SinkForGitlabSource {
+    Gitlab,
+    Stdout,
+}
+
 #[derive(Debug, Subcommand)]
 enum Source {
     /// A local git repository.
@@ -58,6 +64,9 @@ enum Source {
         /// The URL for a merge request
         #[arg(short, long)]
         url: String,
+
+        #[arg(short, long, default_value = "gitlab")]
+        sink: SinkForGitlabSource,
     },
     // TODO: Folders
     // TODO: Arbitrary git remotes
@@ -88,13 +97,15 @@ async fn main() -> Result<()> {
             let sink: Arc<Mutex<dyn ReviewSink>> = Arc::new(Mutex::new(LocalStdoutSink::new()));
             (source, sink)
         }
-        Source::Gitlab { url } => {
+        Source::Gitlab { url, sink } => {
             let gitlab_config = config.gitlab.context("Gitlab configuration missing")?;
             let source = GitlabReviewSource::new(&url, &gitlab_config).await?;
-            let sink = source.create_sink();
+            let sink: Arc<Mutex<dyn ReviewSink>> = match sink {
+                SinkForGitlabSource::Gitlab => Arc::new(Mutex::new(source.create_sink())),
+                SinkForGitlabSource::Stdout => Arc::new(Mutex::new(LocalStdoutSink::new())),
+            };
 
             let source: Arc<Mutex<dyn ReviewSource>> = Arc::new(Mutex::new(source));
-            let sink: Arc<Mutex<dyn ReviewSink>> = Arc::new(Mutex::new(sink));
 
             (source, sink)
         }

@@ -65,6 +65,9 @@ This section defines the LLM provider and which model is used.
 # The base URL for the OpenAI compatible endpoint
 # This depends on your token provider
 base_url = "http://127.0.0.1:1234/v1" # typical local lmstudio configuration
+# For openrouter
+# "base_url": "https://openrouter.ai/api/v1",
+
 
 # OPTIONAL
 # The API token for the OpenAI compatible endpoint
@@ -72,6 +75,8 @@ api_token = "sk-..."
 
 # The model to review with
 model = "openai/gpt-oss-20b"
+# ... and for openrouter you might use
+# "model": "openai/gpt-6-luna",
 
 # OPTIONAL
 # The maximum number of turns. Defaults to 30, which should be plenty
