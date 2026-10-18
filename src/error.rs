@@ -15,6 +15,9 @@ pub enum RigReviewError {
     RigProviderError(#[from] ProviderError),
 
     #[error(transparent)]
+    ReqwestError(#[from] reqwest::Error),
+
+    #[error(transparent)]
     GitError(#[from] GixError),
 
     #[error(transparent)]

@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use crate::{
+    config::NetworkConfig,
     error::RigReviewError,
     sink::gitlab::gitlab_review_sink::GitlabReviewSink,
     source::{base::ReviewSource, gitlab::config::GitlabReviewSourceConfig},
@@ -47,6 +48,7 @@ impl GitlabReviewSource {
     pub async fn new(
         mr_url: &str,
         config: &GitlabReviewSourceConfig,
+        network_config: &NetworkConfig,
     ) -> Result<Self, RigReviewError> {
         tracing::info!("Source: {mr_url}");
 
@@ -60,6 +62,10 @@ impl GitlabReviewSource {
         if matches!(security, HttpSecurity::Insecure) {
             client_builder.insecure();
         }
+        if network_config.ignore_certs {
+            client_builder.cert_insecure();
+        }
+
         let client = client_builder.build_async().await?;
 
         Ok(Self {

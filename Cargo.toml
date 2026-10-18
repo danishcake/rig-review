@@ -12,6 +12,7 @@ futures-util = "0.3"
 gitlab = "0.1904.0"
 gix = "0.89.0"
 regex = "1.13.1"
+reqwest = "0.13.5"
 rig = { version = "0.44.0", features = ["reqwest"] }
 serde = "1.0.229"
 thiserror = "2.0.21"

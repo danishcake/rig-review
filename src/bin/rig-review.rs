@@ -29,6 +29,10 @@ struct Args {
     #[arg(short, action = clap::ArgAction::Count)]
     verbose: u8,
 
+    /// Ignore invalid certicicates for all network traffic
+    #[arg[short, long, default_value_t = false]]
+    ignore_certs: bool,
+
     /// The source is set using a subcommand
     #[command(subcommand)]
     source: Source,
@@ -81,7 +85,12 @@ async fn main() -> Result<()> {
     initialise_logging(args.verbose);
 
     // Load config
-    let config = Config::new(&args.config)?;
+    let mut config = Config::new(&args.config)?;
+
+    // Merge CLI arguments into config
+    if args.ignore_certs {
+        config.network.ignore_certs = args.ignore_certs;
+    }
 
     // Create the source and sink for the review
     let (source, sink) = match args.source {
@@ -99,7 +108,7 @@ async fn main() -> Result<()> {
         }
         Source::Gitlab { url, sink } => {
             let gitlab_config = config.gitlab.context("Gitlab configuration missing")?;
-            let source = GitlabReviewSource::new(&url, &gitlab_config).await?;
+            let source = GitlabReviewSource::new(&url, &gitlab_config, &config.network).await?;
             let sink: Arc<Mutex<dyn ReviewSink>> = match sink {
                 SinkForGitlabSource::Gitlab => Arc::new(Mutex::new(source.create_sink())),
                 SinkForGitlabSource::Stdout => Arc::new(Mutex::new(LocalStdoutSink::new())),
@@ -112,7 +121,7 @@ async fn main() -> Result<()> {
     };
 
     // Create review engine
-    let mut review_engine = RigReviewEngine::new(&config.rig_review_engine);
+    let mut review_engine = RigReviewEngine::new(&config.rig_review_engine, &config.network);
 
     // Perform the review
     review_engine.review(source, sink).await?;

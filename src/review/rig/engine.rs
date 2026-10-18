@@ -5,6 +5,7 @@ use futures_util::StreamExt;
 use tokio::sync::Mutex;
 
 use crate::{
+    config::NetworkConfig,
     error::RigReviewError,
     review::{
         base::ReviewEngine,
@@ -23,12 +24,14 @@ use rig::{ProviderError, agent::MultiTurnStreamItem};
 
 pub struct RigReviewEngine {
     config: RigReviewEngineConfig,
+    network_config: NetworkConfig,
 }
 
 impl RigReviewEngine {
-    pub fn new(config: &RigReviewEngineConfig) -> Self {
+    pub fn new(config: &RigReviewEngineConfig, network_config: &NetworkConfig) -> Self {
         RigReviewEngine {
             config: config.clone(),
+            network_config: network_config.clone(),
         }
     }
 }
@@ -43,10 +46,18 @@ impl ReviewEngine for RigReviewEngine {
         // Determine API token, falling back to 'unused'
         let api_token = self.config.api_token.clone().unwrap_or("unused".into());
 
+        // Create HTTP client
+        let http_client = reqwest::Client::builder()
+            .danger_accept_invalid_certs(self.network_config.ignore_certs)
+            .build()?;
+        // Wrap that in the rig wrapper
+        let http_client: rig::rig_reqwest::ReqwestClient = http_client.into();
+
         // Create client
         let client = OpenAIConfig::new(api_token)
             .with_base_url(&self.config.base_url)
-            .client();
+            .client()
+            .with_http(http_client);
 
         // Get the model
         let model = client.chat(&self.config.model);

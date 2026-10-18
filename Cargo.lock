@@ -6824,6 +6824,7 @@ dependencies = [
  "gitlab",
  "gix",
  "regex",
+ "reqwest 0.13.5",
  "rig",
  "serde",
  "thiserror 2.0.21",

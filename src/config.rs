@@ -8,11 +8,24 @@ use crate::{
     source::gitlab::config::GitlabReviewSourceConfig,
 };
 
+#[derive(Debug, Deserialize, Default, Clone)]
+pub struct NetworkConfig {
+    /// Ignore invalid certificates
+    #[serde(default)]
+    pub ignore_certs: bool,
+
+    /// Custom CA certificates to trust
+    #[serde(default)]
+    pub custom_ca: Vec<PathBuf>,
+}
+
 #[derive(Debug, Deserialize)]
 pub struct Config {
     // TODO: Add logging
     pub rig_review_engine: RigReviewEngineConfig,
     pub gitlab: Option<GitlabReviewSourceConfig>,
+    #[serde(default)]
+    pub network: NetworkConfig,
 }
 
 impl Config {
