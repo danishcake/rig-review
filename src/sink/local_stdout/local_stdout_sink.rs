@@ -6,6 +6,7 @@ pub struct LocalStdoutSink {}
 
 impl LocalStdoutSink {
     pub fn new() -> Self {
+        tracing::info!("Sink: stdout");
         LocalStdoutSink {}
     }
 }

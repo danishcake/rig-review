@@ -28,6 +28,7 @@ enum HttpSecurity {
 }
 
 pub struct GitlabReviewSource {
+    mr_url: String,
     project_path: String,
     mr_iid: u64,
     client: Arc<Mutex<AsyncGitlab>>,
@@ -47,6 +48,8 @@ impl GitlabReviewSource {
         mr_url: &str,
         config: &GitlabReviewSourceConfig,
     ) -> Result<Self, RigReviewError> {
+        tracing::info!("Source: {mr_url}");
+
         // Extract the host and scheme from the merge request URL, or config if present
         let (security, host, base_path) = Self::parse_host_and_scheme(config, mr_url)?;
 
@@ -60,6 +63,7 @@ impl GitlabReviewSource {
         let client = client_builder.build_async().await?;
 
         Ok(Self {
+            mr_url: mr_url.into(),
             project_path,
             mr_iid,
             client: Arc::new(Mutex::new(client)),
@@ -198,7 +202,12 @@ impl GitlabReviewSource {
 
     /// Creates a corresponding sink
     pub fn create_sink(&self) -> GitlabReviewSink {
-        GitlabReviewSink::new(self.project_path.clone(), self.mr_iid, self.client.clone())
+        GitlabReviewSink::new(
+            self.mr_url.clone(),
+            self.project_path.clone(),
+            self.mr_iid,
+            self.client.clone(),
+        )
     }
 }
 

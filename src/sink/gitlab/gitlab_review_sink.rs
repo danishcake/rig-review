@@ -16,7 +16,13 @@ pub struct GitlabReviewSink {
 }
 
 impl GitlabReviewSink {
-    pub fn new(project_path: String, mr_iid: u64, client: Arc<Mutex<AsyncGitlab>>) -> Self {
+    pub fn new(
+        mr_url: String,
+        project_path: String,
+        mr_iid: u64,
+        client: Arc<Mutex<AsyncGitlab>>,
+    ) -> Self {
+        tracing::info!("Sink: {mr_url}");
         GitlabReviewSink {
             project_path,
             mr_iid,

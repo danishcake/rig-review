@@ -21,6 +21,11 @@ impl LocalGitReviewSource {
         base_commit: &str,
         modified_commit: &str,
     ) -> Result<Self, RigReviewError> {
+        tracing::info!(
+            "Source: {} {base_commit}..{modified_commit}",
+            folder.display()
+        );
+
         let repository = gix::open(folder)?;
 
         // Extract the changes
