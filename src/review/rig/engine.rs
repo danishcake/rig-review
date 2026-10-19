@@ -17,6 +17,7 @@ use crate::{
     },
     sink::base::ReviewSink,
     source::base::ReviewSource,
+    util::reqwest_utils::load_certificates,
 };
 
 use rig::{AgentBuilder, providers::openai::OpenAIConfig};
@@ -46,9 +47,13 @@ impl ReviewEngine for RigReviewEngine {
         // Determine API token, falling back to 'unused'
         let api_token = self.config.api_token.clone().unwrap_or("unused".into());
 
+        // Load the additional certificates
+        let extra_certificates = load_certificates(&self.network_config)?;
+
         // Create HTTP client
         let http_client = reqwest::Client::builder()
             .danger_accept_invalid_certs(self.network_config.ignore_certs)
+            .tls_certs_merge(extra_certificates)
             .build()?;
         // Wrap that in the rig wrapper
         let http_client: rig::rig_reqwest::ReqwestClient = http_client.into();

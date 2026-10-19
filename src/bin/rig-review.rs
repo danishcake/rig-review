@@ -33,6 +33,10 @@ struct Args {
     #[arg[short, long, default_value_t = false]]
     ignore_certs: bool,
 
+    /// Additional certificates to trust
+    #[arg[short, long, action = clap::ArgAction::Append]]
+    extra_ca: Vec<PathBuf>,
+
     /// The source is set using a subcommand
     #[command(subcommand)]
     source: Source,

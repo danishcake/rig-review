@@ -5,10 +5,11 @@ use crate::{
     error::RigReviewError,
     sink::gitlab::gitlab_review_sink::GitlabReviewSink,
     source::{base::ReviewSource, gitlab::config::GitlabReviewSourceConfig},
+    util::reqwest_utils::load_certificates_as_pem_bundle,
 };
 
 use gitlab::{
-    AsyncGitlab, GitlabBuilder, RestError,
+    AsyncGitlab, CertificateBundle, GitlabBuilder, RestError,
     api::{
         self, ApiError, AsyncQuery,
         projects::{
@@ -62,6 +63,13 @@ impl GitlabReviewSource {
         if matches!(security, HttpSecurity::Insecure) {
             client_builder.insecure();
         }
+        // Staged until https://gitlab.kitware.com/utils/rust-gitlab/-/work_items/131
+        // is fixed
+        // if !network_config.extra_ca.is_empty() {
+        //     client_builder.cert_custom(CertificateBundle::pem_bundle(
+        //         &load_certificates_as_pem_bundle(network_config)?,
+        //     )?);
+        // }
         if network_config.ignore_certs {
             client_builder.cert_insecure();
         }

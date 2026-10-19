@@ -16,7 +16,7 @@ pub struct NetworkConfig {
 
     /// Custom CA certificates to trust
     #[serde(default)]
-    pub custom_ca: Vec<PathBuf>,
+    pub extra_ca: Vec<PathBuf>,
 }
 
 #[derive(Debug, Deserialize)]
