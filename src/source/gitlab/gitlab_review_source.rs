@@ -65,11 +65,11 @@ impl GitlabReviewSource {
         }
         // Staged until https://gitlab.kitware.com/utils/rust-gitlab/-/work_items/131
         // is fixed
-        // if !network_config.extra_ca.is_empty() {
-        //     client_builder.cert_custom(CertificateBundle::pem_bundle(
-        //         &load_certificates_as_pem_bundle(network_config)?,
-        //     )?);
-        // }
+        if !network_config.extra_ca.is_empty() {
+            client_builder.cert_custom(CertificateBundle::pem_bundle(
+                &load_certificates_as_pem_bundle(network_config)?,
+            )?);
+        }
         if network_config.ignore_certs {
             client_builder.cert_insecure();
         }

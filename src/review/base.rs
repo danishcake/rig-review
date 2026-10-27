@@ -12,6 +12,6 @@ pub trait ReviewEngine {
     async fn review(
         &mut self,
         source: Arc<Mutex<dyn ReviewSource>>,
-        sink: Arc<Mutex<dyn ReviewSink>>,
+        sinks: Vec<Arc<Mutex<dyn ReviewSink>>>,
     ) -> Result<(), RigReviewError>;
 }

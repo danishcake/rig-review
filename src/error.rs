@@ -7,6 +7,7 @@ use gitlab::{
 };
 use gix::Error as GixError;
 use rig::{error::ProviderError, run::PromptError};
+use serenity::Error as DiscordError;
 use url::ParseError;
 
 #[derive(thiserror::Error, Debug)]
@@ -28,6 +29,9 @@ pub enum RigReviewError {
 
     #[error(transparent)]
     GitlabApiRawError(#[from] FileRawBuilderError),
+
+    #[error(transparent)]
+    DiscordApiError(#[from] DiscordError),
 
     #[error(transparent)]
     ConfigError(#[from] ConfigError),

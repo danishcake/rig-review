@@ -5,6 +5,7 @@ use serde::Deserialize;
 
 use crate::{
     error::RigReviewError, review::rig::config::RigReviewEngineConfig,
+    sink::discord::config::DiscordReviewSinkConfig,
     source::gitlab::config::GitlabReviewSourceConfig,
 };
 
@@ -24,6 +25,7 @@ pub struct Config {
     // TODO: Add logging
     pub rig_review_engine: RigReviewEngineConfig,
     pub gitlab: Option<GitlabReviewSourceConfig>,
+    pub discord: Option<DiscordReviewSinkConfig>,
     #[serde(default)]
     pub network: NetworkConfig,
 }

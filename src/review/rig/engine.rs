@@ -42,7 +42,7 @@ impl ReviewEngine for RigReviewEngine {
     async fn review(
         &mut self,
         source: Arc<Mutex<dyn ReviewSource>>,
-        sink: Arc<Mutex<dyn ReviewSink>>,
+        sinks: Vec<Arc<Mutex<dyn ReviewSink>>>,
     ) -> Result<(), RigReviewError> {
         // Determine API token, falling back to 'unused'
         let api_token = self.config.api_token.clone().unwrap_or("unused".into());
@@ -105,8 +105,10 @@ impl ReviewEngine for RigReviewEngine {
             })?
             .output();
 
-        let sink = sink.lock().await;
-        sink.output(report).await?;
+        for sink in sinks {
+            let sink = sink.lock().await;
+            sink.output(report.clone()).await?;
+        }
 
         Ok(())
     }

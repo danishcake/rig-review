@@ -9,9 +9,13 @@ use anyhow::{Context, Result};
 use clap::{Parser, Subcommand, ValueEnum};
 use rig_review::{
     config::Config,
+    error::RigReviewError,
     logging::initialise_logging,
     review::{base::ReviewEngine, rig::engine::RigReviewEngine},
-    sink::{base::ReviewSink, local_stdout::local_stdout_sink::LocalStdoutSink},
+    sink::{
+        base::ReviewSink, discord::discord_sink::DiscordSink,
+        local_stdout::local_stdout_sink::LocalStdoutSink,
+    },
     source::{
         base::ReviewSource, gitlab::gitlab_review_source::GitlabReviewSource,
         local::local_git_review_source::LocalGitReviewSource,
@@ -46,6 +50,13 @@ struct Args {
 enum SinkForGitlabSource {
     Gitlab,
     Stdout,
+    Discord,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]
+enum SinkForLocalSource {
+    Stdout,
+    Discord,
 }
 
 #[derive(Debug, Subcommand)]
@@ -64,6 +75,9 @@ enum Source {
         /// The modified commit hash, tag or branch
         #[arg(short, long)]
         modified: String,
+
+        #[arg(short, long, value_enum, default_values_t = [SinkForLocalSource::Stdout])]
+        sinks: Vec<SinkForLocalSource>,
     },
 
     /// A remote gitlab instance.
@@ -73,8 +87,8 @@ enum Source {
         #[arg(short, long)]
         url: String,
 
-        #[arg(short, long, default_value = "gitlab")]
-        sink: SinkForGitlabSource,
+        #[arg(short, long, value_enum, default_values_t = [SinkForGitlabSource::Gitlab])]
+        sinks: Vec<SinkForGitlabSource>,
     },
     // TODO: Folders
     // TODO: Arbitrary git remotes
@@ -96,31 +110,62 @@ async fn main() -> Result<()> {
         config.network.ignore_certs = args.ignore_certs;
     }
 
-    // Create the source and sink for the review
-    let (source, sink) = match args.source {
+    // Create the source and sinks for the review
+    let (source, sinks) = match args.source {
         Source::Local {
             input,
             base,
             modified,
+            sinks,
         } => {
             let source: Arc<Mutex<dyn ReviewSource>> = Arc::new(Mutex::new(
                 LocalGitReviewSource::new(input, &base, &modified)
                     .context("Failed to initialise source")?,
             ));
-            let sink: Arc<Mutex<dyn ReviewSink>> = Arc::new(Mutex::new(LocalStdoutSink::new()));
-            (source, sink)
+            let sinks = sinks
+                .iter()
+                .map(|sink| match sink {
+                    SinkForLocalSource::Stdout => {
+                        let sink: Arc<Mutex<dyn ReviewSink>> =
+                            Arc::new(Mutex::new(LocalStdoutSink::new()));
+                        Ok(sink)
+                    }
+                    SinkForLocalSource::Discord => {
+                        let sink: Arc<Mutex<dyn ReviewSink>> =
+                            Arc::new(Mutex::new(DiscordSink::new(&config.discord)?));
+                        Ok(sink)
+                    }
+                })
+                .collect::<Result<Vec<Arc<Mutex<dyn ReviewSink>>>, RigReviewError>>()?;
+            (source, sinks)
         }
-        Source::Gitlab { url, sink } => {
+        Source::Gitlab { url, sinks } => {
             let gitlab_config = config.gitlab.context("Gitlab configuration missing")?;
             let source = GitlabReviewSource::new(&url, &gitlab_config, &config.network).await?;
-            let sink: Arc<Mutex<dyn ReviewSink>> = match sink {
-                SinkForGitlabSource::Gitlab => Arc::new(Mutex::new(source.create_sink())),
-                SinkForGitlabSource::Stdout => Arc::new(Mutex::new(LocalStdoutSink::new())),
-            };
+            let sinks = sinks
+                .iter()
+                .map(|sink| match sink {
+                    SinkForGitlabSource::Gitlab => {
+                        let sink: Arc<Mutex<dyn ReviewSink>> =
+                            Arc::new(Mutex::new(source.create_sink()));
+                        Ok(sink)
+                    }
+                    SinkForGitlabSource::Stdout => {
+                        let sink: Arc<Mutex<dyn ReviewSink>> =
+                            Arc::new(Mutex::new(LocalStdoutSink::new()));
+                        Ok(sink)
+                    }
+                    SinkForGitlabSource::Discord => {
+                        let sink: Arc<Mutex<dyn ReviewSink>> =
+                            Arc::new(Mutex::new(DiscordSink::new(&config.discord)?));
+                        Ok(sink)
+                    }
+                })
+                .collect::<Result<Vec<Arc<Mutex<dyn ReviewSink>>>, RigReviewError>>()?;
 
             let source: Arc<Mutex<dyn ReviewSource>> = Arc::new(Mutex::new(source));
 
-            (source, sink)
+            (source, sinks)
         }
     };
 
@@ -128,7 +173,7 @@ async fn main() -> Result<()> {
     let mut review_engine = RigReviewEngine::new(&config.rig_review_engine, &config.network);
 
     // Perform the review
-    review_engine.review(source, sink).await?;
+    review_engine.review(source, sinks).await?;
 
     Ok(())
 }

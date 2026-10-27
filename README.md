@@ -8,12 +8,23 @@ A tool for performing LLM assisted reviews of code changes.
 - A sink for output.
 - An engine that performs the review.
 
-The following soures are available:
+The following sources are available:
 
 - Local git.<br>
   This reviews changes in a local git repository, using a pair of commit references.
 - Gitlab.<br>
   This reviews changes against a gitlab merge request.
+
+The following sinks are available:
+
+- Stdout<br>
+  This simples outputs the review to stdout
+- Gitlab.<br>
+  This posts comments against a gitlab merge request. It can only be used when the Gitlab source is used.
+- Discord.<br>
+  This posts to Discord using a Discord Webhook.
+
+You can use multiple sinks by specifying the `--sink` option multiple times.
 
 ## Getting started
 
@@ -133,6 +144,43 @@ api_token = "glpat-..."
   "gitlab": {
     "host": "https://gitlab.com",
     "api_token": "glpat-..."
+  }
+}
+```
+
+### Discord sink configuration
+
+Discord configuration falls under the `discord` key and defines how Discord is accessed.
+
+First, create a Webhook in Discord:
+
+1. Right click the server and select `Server Settings/Integrations`.
+2. Select `Webhooks`
+3. Select `New Webhook`
+4. Copy the URL. Note that it is formed of two parts - a number ID, and an alphanumeric token.
+
+```
+https://discord.com/api/webhooks/1234567891234567890/aslkdjsfjhlksdjfhkjsdhflkjsdhflksdahflkjadshflkjsdhflkjdsasdskfjsdlk
+                                 ^ webhook_id        ^webhook_token
+```
+
+```toml
+# OPTIONAL
+[discord]
+webhook_id = 1234
+# Environment variable
+# export RIG_REVIEW__discord.webhook_id="1234"
+
+webhook_token = "ABCD"
+# Environment variable
+# export RIG_REVIEW__discord.webhook_token="ABCD"
+```
+
+```json
+{
+  "discord": {
+    "webhook_id": 1234,
+    "webhook_token": "ABCD"
   }
 }
 ```
