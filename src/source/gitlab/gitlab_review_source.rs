@@ -41,7 +41,26 @@ pub struct GitlabReviewSource {
 }
 
 impl GitlabReviewSource {
-    /// Constructr
+    /// Validate a merge request URL against the configured GitLab host and URL format.
+    pub fn is_valid_mr_url(mr_url: &str, config: &GitlabReviewSourceConfig) -> bool {
+        let Ok(parsed_url) = Url::parse(mr_url) else {
+            return false;
+        };
+        if !parsed_url.username().is_empty()
+            || parsed_url.password().is_some()
+            || parsed_url.query().is_some()
+            || parsed_url.fragment().is_some()
+        {
+            return false;
+        }
+
+        let Ok((_, _, base_path)) = Self::parse_host_and_scheme(config, mr_url) else {
+            return false;
+        };
+        Self::parse_project_path_and_mr_iid(&base_path, mr_url).is_ok()
+    }
+
+    /// Constructor
     ///
     /// # Arguments
     /// * `mr_url` - the URL of the merge request
@@ -369,5 +388,23 @@ mod tests {
             .unwrap(),
             ("group/project".to_owned(), 7)
         );
+    }
+
+    #[test]
+    fn validates_mr_urls_against_the_configured_host() {
+        let config = config(Some("https://gitlab.example.com"));
+
+        assert!(GitlabReviewSource::is_valid_mr_url(
+            "https://gitlab.example.com/group/project/-/merge_requests/42",
+            &config,
+        ));
+        assert!(!GitlabReviewSource::is_valid_mr_url(
+            "https://attacker.example/group/project/-/merge_requests/42",
+            &config,
+        ));
+        assert!(!GitlabReviewSource::is_valid_mr_url(
+            "https://user:password@gitlab.example.com/group/project/-/merge_requests/42",
+            &config,
+        ));
     }
 }

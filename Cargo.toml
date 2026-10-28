@@ -2,10 +2,12 @@
 name = "rig-review"
 version = "0.1.0"
 edition = "2024"
+default-run = "rig-review"
 
 [dependencies]
 anyhow = "1.0.104"
 async-trait = "0.1.92"
+axum = "0.8"
 clap = { version = "4.6.7", features = ["derive"] }
 config = "0.15.27"
 futures-util = "0.3"

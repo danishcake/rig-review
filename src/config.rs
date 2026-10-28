@@ -5,7 +5,7 @@ use serde::Deserialize;
 
 use crate::{
     error::RigReviewError, review::rig::config::RigReviewEngineConfig,
-    sink::discord::config::DiscordReviewSinkConfig,
+    server::config::ServerConfig, sink::discord::config::DiscordReviewSinkConfig,
     source::gitlab::config::GitlabReviewSourceConfig,
 };
 
@@ -20,12 +20,13 @@ pub struct NetworkConfig {
     pub extra_ca: Vec<PathBuf>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct Config {
     // TODO: Add logging
     pub rig_review_engine: RigReviewEngineConfig,
     pub gitlab: Option<GitlabReviewSourceConfig>,
     pub discord: Option<DiscordReviewSinkConfig>,
+    pub server: Option<ServerConfig>,
     #[serde(default)]
     pub network: NetworkConfig,
 }
@@ -34,7 +35,11 @@ impl Config {
     pub fn new(explicit_file: &Option<PathBuf>) -> Result<Self, RigReviewError> {
         let mut config_builder = config::Config::builder()
             // Load config from environment
-            .add_source(Environment::with_prefix("RIG_REVIEW").prefix_separator("__"));
+            .add_source(
+                Environment::with_prefix("RIG_REVIEW")
+                    .prefix_separator("__")
+                    .list_separator(","),
+            );
 
         // Load the local config file, if present
         if let Some(local_file) = Config::find_local_config() {
