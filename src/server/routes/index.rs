@@ -57,7 +57,7 @@ const INDEX_HTML: &str = r#"<!doctype html>
       submitButton.disabled = true;
       submissionStatus.textContent = "Submitting review…";
       try {
-        const response = await fetch("/api/jobs", {
+        const response = await fetch("api/jobs", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ merge_request_url: mergeRequestUrl.value.trim() })
@@ -77,7 +77,7 @@ const INDEX_HTML: &str = r#"<!doctype html>
     async function refresh() {
       const updated = document.getElementById("updated");
       try {
-        const response = await fetch("/api/jobs", { cache: "no-store" });
+        const response = await fetch("api/jobs", { cache: "no-store" });
         if (!response.ok) throw new Error("HTTP " + response.status);
         const jobs = await response.json();
         const body = document.getElementById("jobs");
