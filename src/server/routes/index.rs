@@ -24,11 +24,22 @@ const INDEX_HTML: &str = r#"<!doctype html>
     .status { font-weight: 600; text-transform: capitalize; }
     .error { color: #d55; }
     #updated { font-size: .9rem; }
+    form { display: flex; flex-wrap: wrap; gap: .5rem; margin: 1.5rem 0; }
+    label { flex-basis: 100%; font-weight: 600; }
+    input { flex: 1; min-width: 16rem; padding: .55rem; font: inherit; }
+    button { padding: .55rem .9rem; font: inherit; cursor: pointer; }
+    #submission-status { flex-basis: 100%; min-height: 1.3em; }
   </style>
 </head>
 <body>
   <h1>Rig Review Jobs</h1>
   <p>Recent GitLab merge request review jobs. This dashboard is publicly accessible.</p>
+  <form id="manual-job-form">
+    <label for="merge-request-url">Submit a merge request for review</label>
+    <input id="merge-request-url" name="merge_request_url" type="url" placeholder="https://gitlab.example.com/group/project/-/merge_requests/123" required>
+    <button id="submit-job" type="submit">Submit review</button>
+    <div id="submission-status" role="status" aria-live="polite"></div>
+  </form>
   <div id="updated" aria-live="polite">Loading jobs…</div>
   <table>
     <thead><tr><th>ID</th><th>Merge request</th><th>Status</th><th>Created</th><th>Started</th><th>Finished</th><th>Details</th></tr></thead>
@@ -36,6 +47,33 @@ const INDEX_HTML: &str = r#"<!doctype html>
   </table>
   <script>
     const formatTime = value => value ? new Date(value * 1000).toLocaleString() : "—";
+    const form = document.getElementById("manual-job-form");
+    const mergeRequestUrl = document.getElementById("merge-request-url");
+    const submitButton = document.getElementById("submit-job");
+    const submissionStatus = document.getElementById("submission-status");
+
+    form.addEventListener("submit", async event => {
+      event.preventDefault();
+      submitButton.disabled = true;
+      submissionStatus.textContent = "Submitting review…";
+      try {
+        const response = await fetch("/api/jobs", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ merge_request_url: mergeRequestUrl.value.trim() })
+        });
+        if (!response.ok) throw new Error(await response.text());
+        const result = await response.json();
+        submissionStatus.textContent = `Queued review job #${result.job_id}.`;
+        form.reset();
+        refresh();
+      } catch (error) {
+        submissionStatus.textContent = `Could not submit review: ${error.message}`;
+      } finally {
+        submitButton.disabled = false;
+      }
+    });
+
     async function refresh() {
       const updated = document.getElementById("updated");
       try {

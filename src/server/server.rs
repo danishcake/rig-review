@@ -22,7 +22,10 @@ use crate::{
         rig::{config::RigReviewEngineConfig, engine::RigReviewEngine},
     },
     server::{
-        routes::{get_job::get_job, index::index, list_jobs::list_jobs, webhook::gitlab_webhook},
+        routes::{
+            get_job::get_job, index::index, list_jobs::list_jobs, submit_job::submit_job,
+            webhook::gitlab_webhook,
+        },
         state::{AppState, JobStatus, JobStore},
     },
     sink::base::ReviewSink,
@@ -75,7 +78,7 @@ pub async fn run(config: Config) -> Result<(), RigReviewError> {
     // Define the routes
     let app = Router::new()
         .route("/", get(index))
-        .route("/api/jobs", get(list_jobs))
+        .route("/api/jobs", get(list_jobs).post(submit_job))
         .route("/api/jobs/{id}", get(get_job))
         .route("/webhooks/gitlab", post(gitlab_webhook))
         .with_state(state);
