@@ -11,12 +11,14 @@ pub struct LoggingHook {
 }
 
 impl LoggingHook {
+    /// Constructor
     pub fn new() -> Self {
         LoggingHook {
             active_stream_part: std::sync::Mutex::new(None),
         }
     }
 
+    /// Writes to stderr at the specified verbosity
     fn write_stderr(&self, level: Level, output: &str) {
         if !is_level_enabled(&level) {
             return;
@@ -31,6 +33,8 @@ impl LoggingHook {
         }
     }
 
+    /// Enters a 'part' of the output - this can be things like reasoning, tool calls, text output
+    /// If the type of the part changes then the label is output
     fn start_stream_part(&self, level: Level, part: Part, label: &str) {
         if !is_level_enabled(&level) {
             return;
@@ -48,6 +52,7 @@ impl LoggingHook {
         self.write_stderr(Level::DEBUG, &format!("\n[{label}] "));
     }
 
+    /// Appends text. This clears the part, so that subsequent deltas don't get a newline
     fn write_text_delta(&self, delta: &str) {
         let mut active_part = self
             .active_stream_part
@@ -77,6 +82,11 @@ impl AgentHook for LoggingHook {
         event: rig::agent::ModelTurnFinished<'_>,
     ) -> rig::agent::ModelTurnAction {
         self.finish_stream_part();
+        tracing::debug!(
+            turn = event.turn,
+            total_tokens = ?event.usage.total_tokens,
+            "Token usage for model turn"
+        );
         tracing::trace!("Model turn finished: {:?}", event.content);
         rig::agent::ModelTurnAction::Continue
     }
