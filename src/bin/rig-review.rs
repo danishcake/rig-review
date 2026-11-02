@@ -76,7 +76,7 @@ enum Source {
         #[arg(short, long)]
         modified: String,
 
-        #[arg(short, long, value_enum, default_values_t = [SinkForLocalSource::Stdout])]
+        #[arg(short, long, value_enum, default_values_t = [SinkForLocalSource::Stdout], num_args = 1..)]
         sinks: Vec<SinkForLocalSource>,
     },
 
@@ -87,7 +87,7 @@ enum Source {
         #[arg(short, long)]
         url: String,
 
-        #[arg(short, long, value_enum, default_values_t = [SinkForGitlabSource::Gitlab])]
+        #[arg(short, long, value_enum, default_values_t = [SinkForGitlabSource::Gitlab], num_args = 1..)]
         sinks: Vec<SinkForGitlabSource>,
     },
     // TODO: Folders

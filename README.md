@@ -69,8 +69,12 @@ model = "openai/gpt-oss-20b"
 # OPTIONAL
 # The maximum number of turns. Defaults to 30, which should be plenty
 max_turns = 30
-# Environment variable
 # export RIG_REVIEW__rig_review_engine.max_turns=30
+
+# OPTIONAL
+# Any additional parameters to send to the OpenAI endpoint
+additional_params.reasoning_effort = "low"
+# export RIG_REVIEW__rig_review_engine.additional_params.reasoning_effort=low
 ```
 
 ```json
@@ -79,7 +83,10 @@ max_turns = 30
     "base_url": "http://127.0.0.1:1234/v1",
     "api_token": "sk-...",
     "model": "openai/gpt-oss-20b",
-    "max_turns": 30
+    "max_turns": 30,
+    "additional_params": {
+      "reasoning_effort": "low"
+    }
   }
 }
 ```

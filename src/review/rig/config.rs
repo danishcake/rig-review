@@ -1,3 +1,4 @@
+use rig::serde_json::Value;
 use serde::Deserialize;
 
 /// Configuration for the RigReviewEngine
@@ -14,4 +15,8 @@ pub struct RigReviewEngineConfig {
 
     /// The maximum number of turns. Defaults to 30
     pub max_turns: Option<usize>,
+
+    /// Additional parameters to pass the the OpenAI endpoint
+    /// For example, reasoning_effort = "low" can be used to control overthing by Qwen models
+    pub additional_params: Option<Value>,
 }

@@ -30,6 +30,21 @@ pub struct RigReviewEngine {
 
 impl RigReviewEngine {
     pub fn new(config: &RigReviewEngineConfig, network_config: &NetworkConfig) -> Self {
+        tracing::info!("Using base_url {}", &config.base_url);
+        tracing::info!("Using model {}", &config.model);
+        if let Some(additional_params) = &config.additional_params {
+            tracing::info!(
+                additional_params = %additional_params.clone(),
+                "Model calls made with additional parameters"
+            );
+        }
+        if network_config.ignore_certs {
+            tracing::warn!("Ignoring certificate errors");
+        }
+        for extra_ca in &network_config.extra_ca {
+            tracing::info!("Using additional CA {}", extra_ca.display());
+        }
+
         RigReviewEngine {
             config: config.clone(),
             network_config: network_config.clone(),
@@ -80,8 +95,15 @@ impl ReviewEngine for RigReviewEngine {
             .tool(get_file_diff_tool)
             .add_hook(logging_hook)
             .preamble(include_str!("prompt.txt"))
-            .default_max_turns(self.config.max_turns.unwrap_or(30))
-            .build();
+            .default_max_turns(self.config.max_turns.unwrap_or(30));
+
+        // Add extra request parameters, if present
+        let agent = if let Some(additional_params) = &self.config.additional_params {
+            agent.additional_params(additional_params.clone())
+        } else {
+            agent
+        };
+        let agent = agent.build();
 
         // Perform the review. We do this in a streaming fashion so we can observe the tokens as they
         // arrive. Only the final turn
