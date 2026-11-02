@@ -12,7 +12,7 @@ use crate::{
         rig::{
             config::RigReviewEngineConfig,
             hooks::LoggingHook,
-            tools::{GetChangedFilesTool, GetFileDiffTool},
+            tools::{GetChangedFilesTool, GetFileDiffTool, GetModifiedFileTool},
         },
     },
     sink::base::ReviewSink,
@@ -85,6 +85,7 @@ impl ReviewEngine for RigReviewEngine {
         // Create tools
         let get_files_tool = GetChangedFilesTool::new(source.clone());
         let get_file_diff_tool = GetFileDiffTool::new(source.clone());
+        let get_modified_file_tool = GetModifiedFileTool::new(source.clone());
 
         // Create hooks
         let logging_hook = LoggingHook::new();
@@ -93,6 +94,7 @@ impl ReviewEngine for RigReviewEngine {
         let agent = AgentBuilder::new(model)
             .tool(get_files_tool)
             .tool(get_file_diff_tool)
+            .tool(get_modified_file_tool)
             .add_hook(logging_hook)
             .preamble(include_str!("prompt.txt"))
             .default_max_turns(self.config.max_turns.unwrap_or(30));
