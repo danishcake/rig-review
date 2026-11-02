@@ -5,7 +5,9 @@ use crate::{
     error::RigReviewError,
     sink::gitlab::gitlab_review_sink::GitlabReviewSink,
     source::{base::ReviewSource, gitlab::config::GitlabReviewSourceConfig},
-    util::reqwest_utils::load_certificates_as_pem_bundle,
+    util::{
+        reqwest_utils::load_certificates_as_pem_bundle, tokio_retry2_utils::RetryStrategyFactory,
+    },
 };
 
 use gitlab::{
@@ -21,6 +23,7 @@ use gitlab::{
 use regex::Regex;
 use serde::Deserialize;
 use tokio::sync::{Mutex, OnceCell};
+use tokio_retry2::{Retry, RetryError, strategy::FibonacciBackoff};
 use url::Url;
 
 /// If the scheme used is https or http
@@ -38,6 +41,9 @@ pub struct GitlabReviewSource {
     // Cached requests
     changes: OnceCell<Vec<FileDiff>>,
     merge_request_metadata: OnceCell<MergeRequestMetadata>,
+
+    // Failed request retry strategy
+    retry_strategy_factory: RetryStrategyFactory,
 }
 
 impl GitlabReviewSource {
@@ -72,6 +78,11 @@ impl GitlabReviewSource {
     ) -> Result<Self, RigReviewError> {
         tracing::info!("Source: {mr_url}");
 
+        // Define retry strategy for failed network requests
+        let retries = config.retries;
+        let retry_strategy_factory: RetryStrategyFactory =
+            Arc::new(move || Box::new(FibonacciBackoff::from_millis(1000).take(retries)));
+
         // Extract the host and scheme from the merge request URL, or config if present
         let (security, host, base_path) = Self::parse_host_and_scheme(config, mr_url)?;
 
@@ -79,11 +90,12 @@ impl GitlabReviewSource {
         let (project_path, mr_iid) = Self::parse_project_path_and_mr_iid(&base_path, mr_url)?;
 
         let mut client_builder = GitlabBuilder::new(host, config.api_token.clone());
+
+        // Configure 'http' instead of https
         if matches!(security, HttpSecurity::Insecure) {
             client_builder.insecure();
         }
-        // Staged until https://gitlab.kitware.com/utils/rust-gitlab/-/work_items/131
-        // is fixed
+        // Customise our TLS handling
         if !network_config.extra_ca.is_empty() {
             client_builder.cert_custom(CertificateBundle::pem_bundle(
                 &load_certificates_as_pem_bundle(network_config)?,
@@ -93,7 +105,12 @@ impl GitlabReviewSource {
             client_builder.cert_insecure();
         }
 
-        let client = client_builder.build_async().await?;
+        // Obtain the client. This performs network IO, so is retried
+        let client = Retry::spawn(retry_strategy_factory(), || async {
+            let client = client_builder.build_async().await;
+            client.map_err(RetryError::transient)
+        })
+        .await?;
 
         Ok(Self {
             mr_url: mr_url.into(),
@@ -102,27 +119,32 @@ impl GitlabReviewSource {
             client: Arc::new(Mutex::new(client)),
             changes: OnceCell::new(),
             merge_request_metadata: OnceCell::new(),
+            retry_strategy_factory,
         })
     }
 
     /// Obtains the changes in this merge request
     /// The result is cached, so will only be queried once
+    /// On failure, the request will be retried as per the retry configuration
     async fn get_mr_diff(&self) -> Result<&Vec<FileDiff>, ApiError<RestError>> {
-        let client = self.client.lock().await;
-
         self.changes
             .get_or_try_init(async || {
-                let endpoint: MergeRequestDiffs<'_> = MergeRequestDiffs::builder()
-                    .project(&self.project_path)
-                    .merge_request(self.mr_iid)
-                    .build()
-                    .unwrap();
+                let retry_strategy = (self.retry_strategy_factory)();
+                Retry::spawn(retry_strategy, || async {
+                    let client = self.client.lock().await;
+                    let endpoint: MergeRequestDiffs<'_> = MergeRequestDiffs::builder()
+                        .project(&self.project_path)
+                        .merge_request(self.mr_iid)
+                        .build()
+                        .unwrap();
 
-                let diffs: Result<Vec<FileDiff>, ApiError<RestError>> =
-                    api::paged(endpoint, api::Pagination::All)
-                        .query_async(&*client)
-                        .await;
-                diffs
+                    let diffs: Result<Vec<FileDiff>, ApiError<RestError>> =
+                        api::paged(endpoint, api::Pagination::All)
+                            .query_async(&*client)
+                            .await;
+                    diffs.map_err(RetryError::transient)
+                })
+                .await
             })
             .await
     }
@@ -130,19 +152,22 @@ impl GitlabReviewSource {
     /// Get merge request metadata
     /// The result is cached so will only be queried once
     async fn get_mr_metadata(&self) -> Result<&MergeRequestMetadata, ApiError<RestError>> {
-        let client = self.client.lock().await;
-
         self.merge_request_metadata
             .get_or_try_init(async || {
-                let endpoint = MergeRequest::builder()
-                    .project(&self.project_path)
-                    .merge_request(self.mr_iid)
-                    .build()
-                    .unwrap();
+                let retry_strategy = (self.retry_strategy_factory)();
+                Retry::spawn(retry_strategy, || async {
+                    let client = self.client.lock().await;
+                    let endpoint = MergeRequest::builder()
+                        .project(&self.project_path)
+                        .merge_request(self.mr_iid)
+                        .build()
+                        .unwrap();
 
-                let metadata: Result<MergeRequestMetadata, ApiError<RestError>> =
-                    endpoint.query_async(&*client).await;
-                metadata
+                    let metadata: Result<MergeRequestMetadata, ApiError<RestError>> =
+                        endpoint.query_async(&*client).await;
+                    metadata.map_err(RetryError::transient)
+                })
+                .await
             })
             .await
     }
@@ -240,6 +265,7 @@ impl GitlabReviewSource {
             self.project_path.clone(),
             self.mr_iid,
             self.client.clone(),
+            self.retry_strategy_factory.clone(),
         )
     }
 }
@@ -345,6 +371,7 @@ mod tests {
         GitlabReviewSourceConfig {
             host: host.map(str::to_owned),
             api_token: String::new(),
+            retries: 3,
         }
     }
 

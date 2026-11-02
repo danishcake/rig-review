@@ -12,4 +12,13 @@ pub struct GitlabReviewSourceConfig {
 
     /// The API token for the Gitlab host
     pub api_token: String,
+
+    /// The maximum number of retries. Note that this is retries - the maximum number of
+    /// attempts is one larger.
+    #[serde(default = "default_retries")]
+    pub retries: usize,
+}
+
+fn default_retries() -> usize {
+    3
 }

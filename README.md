@@ -146,13 +146,19 @@ host = "https://gitlab.com"
 # User/System access/user.read
 api_token = "glpat-..."
 # export RIG_REVIEW__gitlab.api_token="glpat-..."
+
+# The number of retries, not including the initial request. There will be
+# a short wait before retries, starting at 1s, and increasing by 1s per retry.
+retries = 3
+# export RIG_REVIEW__gitlab.retries=3
 ```
 
 ```json
 {
   "gitlab": {
     "host": "https://gitlab.com",
-    "api_token": "glpat-..."
+    "api_token": "glpat-...",
+    "retries": 3
   }
 }
 ```
