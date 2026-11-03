@@ -33,6 +33,7 @@ impl StreamState {
     }
 }
 
+#[allow(clippy::new_without_default)]
 impl LoggingHook {
     /// Constructor
     pub fn new() -> Self {

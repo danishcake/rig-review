@@ -52,7 +52,7 @@ impl Tool for GetChangedFilesTool {
         review_source
             .changed_files()
             .await
-            .map_err(|e| ToolExecutionError::from_error(e))
+            .map_err(ToolExecutionError::from_error)
     }
 }
 
@@ -100,7 +100,7 @@ impl Tool for GetFileDiffTool {
         let changes = review_source
             .changes(&args.file)
             .await
-            .map_err(|e| ToolExecutionError::from_error(e))?;
+            .map_err(ToolExecutionError::from_error)?;
         Ok(changes)
     }
 }
@@ -149,7 +149,7 @@ impl Tool for GetModifiedFileTool {
         let modified_file = review_source
             .modified_file(&args.file)
             .await
-            .map_err(|e| ToolExecutionError::from_error(e))?;
+            .map_err(ToolExecutionError::from_error)?;
         Ok(modified_file)
     }
 }

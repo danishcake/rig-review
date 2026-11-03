@@ -114,12 +114,9 @@ impl ReviewEngine for RigReviewEngine {
 
         // Iterate until we get the final reponse
         while let Some(item) = stream.next().await {
-            match item? {
-                MultiTurnStreamItem::FinalResponse(final_response) => {
-                    response = Some(final_response);
-                    break;
-                }
-                _ => {}
+            if let MultiTurnStreamItem::FinalResponse(final_response) = item? {
+                response = Some(final_response);
+                break;
             }
         }
 

@@ -10,10 +10,11 @@ use rig::{error::ProviderError, run::PromptError};
 use serenity::Error as DiscordError;
 use url::ParseError;
 
+/// Top level error type. Large variants are boxed
 #[derive(thiserror::Error, Debug)]
 pub enum RigReviewError {
     #[error(transparent)]
-    RigProviderError(#[from] ProviderError),
+    RigProviderError(#[from] Box<ProviderError>),
 
     #[error(transparent)]
     ReqwestError(#[from] reqwest::Error),
@@ -31,7 +32,7 @@ pub enum RigReviewError {
     GitlabApiRawError(#[from] FileRawBuilderError),
 
     #[error(transparent)]
-    DiscordApiError(#[from] DiscordError),
+    DiscordApiError(#[from] Box<DiscordError>),
 
     #[error(transparent)]
     ConfigError(#[from] ConfigError),
@@ -46,7 +47,7 @@ pub enum RigReviewError {
     Io(#[from] std::io::Error),
 
     #[error(transparent)]
-    PromptError(#[from] PromptError),
+    PromptError(#[from] Box<PromptError>),
 
     #[error(transparent)]
     UrlParseError(#[from] ParseError),
@@ -59,4 +60,22 @@ pub enum RigReviewError {
 
     #[error("file could not be decoded as UTF-8: {0}")]
     FileNotUtf8Error(#[from] FromUtf8Error),
+}
+
+impl From<ProviderError> for RigReviewError {
+    fn from(value: ProviderError) -> Self {
+        Self::RigProviderError(Box::new(value))
+    }
+}
+
+impl From<DiscordError> for RigReviewError {
+    fn from(value: DiscordError) -> Self {
+        Self::DiscordApiError(Box::new(value))
+    }
+}
+
+impl From<PromptError> for RigReviewError {
+    fn from(value: PromptError) -> Self {
+        Self::PromptError(Box::new(value))
+    }
 }

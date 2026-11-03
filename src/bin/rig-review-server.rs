@@ -27,7 +27,7 @@ async fn main() -> Result<()> {
     initialise_logging(args.verbose, args.quiet);
 
     let config = Config::new(&args.config)?;
-    rig_review::server::run(config).await?;
+    rig_review::server::run_server(config).await?;
 
     Ok(())
 }

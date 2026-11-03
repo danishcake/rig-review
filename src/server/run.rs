@@ -36,7 +36,7 @@ use crate::{
 };
 
 /// Start the HTTP server and its review workers.
-pub async fn run(config: Config) -> Result<(), RigReviewError> {
+pub async fn run_server(config: Config) -> Result<(), RigReviewError> {
     let Some(server_config) = config.server else {
         return Err(RigReviewError::MissingConfiguration("server".into()));
     };

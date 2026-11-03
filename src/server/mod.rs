@@ -1,6 +1,6 @@
 pub mod config;
 pub mod routes;
-mod server;
+mod run;
 pub mod state;
 
-pub use server::run;
+pub use run::run_server;

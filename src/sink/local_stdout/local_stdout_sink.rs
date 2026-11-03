@@ -4,6 +4,7 @@ use crate::sink::base::ReviewSink;
 
 pub struct LocalStdoutSink {}
 
+#[allow(clippy::new_without_default)]
 impl LocalStdoutSink {
     pub fn new() -> Self {
         tracing::info!("Sink: stdout");
