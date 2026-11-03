@@ -1,14 +1,16 @@
 use tracing::Level;
 use tracing_subscriber::{filter::Targets, layer::SubscriberExt, util::SubscriberInitExt};
 
-pub fn initialise_logging(verbose: u8) {
-    let (dep_level, crate_level) = match verbose {
-        0 => (Level::WARN, Level::WARN),
-        1 => (Level::WARN, Level::INFO),
-        2 => (Level::WARN, Level::DEBUG),
-        3 => (Level::WARN, Level::TRACE),
-        4 => (Level::INFO, Level::TRACE),
-        5 => (Level::DEBUG, Level::TRACE),
+pub fn initialise_logging(verbose: u8, quiet: u8) {
+    let (dep_level, crate_level) = match 2u8.saturating_add(verbose).saturating_sub(quiet) {
+        0 => (Level::TRACE, Level::TRACE),
+        1 => (Level::ERROR, Level::ERROR),
+        2 => (Level::WARN, Level::WARN),
+        3 => (Level::WARN, Level::INFO),
+        4 => (Level::WARN, Level::DEBUG),
+        5 => (Level::WARN, Level::TRACE),
+        6 => (Level::INFO, Level::TRACE),
+        7 => (Level::DEBUG, Level::TRACE),
         _ => (Level::TRACE, Level::TRACE),
     };
 

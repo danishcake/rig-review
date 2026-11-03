@@ -12,15 +12,19 @@ struct Args {
     #[arg(short, long)]
     config: Option<PathBuf>,
 
-    /// Increase verbosity (-v, -vv, -vvv)
+    /// Increase verbosity (-v, -vv, -vvv). Defaults to INFO
     #[arg(short, action = clap::ArgAction::Count)]
     verbose: u8,
+
+    /// Decrease verbosity (-q, -qq). Defaults to INFO
+    #[arg(short, action = clap::ArgAction::Count)]
+    quiet: u8,
 }
 
 #[tokio::main]
 async fn main() -> Result<()> {
     let args = Args::parse();
-    initialise_logging(args.verbose);
+    initialise_logging(args.verbose, args.quiet);
 
     let config = Config::new(&args.config)?;
     rig_review::server::run(config).await?;

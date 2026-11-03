@@ -33,6 +33,10 @@ struct Args {
     #[arg(short, action = clap::ArgAction::Count)]
     verbose: u8,
 
+    /// Decrease verbosity (-q, -qq). Defaults to INFO
+    #[arg(short, action = clap::ArgAction::Count)]
+    quiet: u8,
+
     /// Ignore invalid certicicates for all network traffic
     #[arg[short, long, default_value_t = false]]
     ignore_certs: bool,
@@ -100,7 +104,7 @@ async fn main() -> Result<()> {
     let args = Args::parse();
 
     // Initialise logging
-    initialise_logging(args.verbose);
+    initialise_logging(args.verbose, args.quiet);
 
     // Load config
     let mut config = Config::new(&args.config)?;
