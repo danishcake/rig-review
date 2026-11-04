@@ -6,6 +6,7 @@ use gitlab::{
     api::{ApiError, projects::repository::files::FileRawBuilderError},
 };
 use gix::Error as GixError;
+use mattermost_api::errors::ApiError as MattermostApiError;
 use rig::{error::ProviderError, run::PromptError};
 use serenity::Error as DiscordError;
 use url::ParseError;
@@ -33,6 +34,9 @@ pub enum RigReviewError {
 
     #[error(transparent)]
     DiscordApiError(#[from] Box<DiscordError>),
+
+    #[error(transparent)]
+    MattermostApiError(#[from] MattermostApiError),
 
     #[error(transparent)]
     ConfigError(#[from] ConfigError),

@@ -13,6 +13,7 @@ config = "0.15.27"
 futures-util = "0.3"
 gitlab = { version = "0.1905.0", features = ["client_pem"] }
 gix = "0.89.0"
+mattermost_api = "0.8.2"
 regex = "1.13.1"
 reqwest = "0.13.5"
 rig = { version = "0.44.0", features = ["reqwest"] }

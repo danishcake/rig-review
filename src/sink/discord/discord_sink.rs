@@ -2,15 +2,15 @@ use serenity::{all::Http, json::json};
 
 use crate::{
     error::RigReviewError,
-    sink::{base::ReviewSink, discord::config::DiscordReviewSinkConfig},
+    sink::{base::ReviewSink, discord::config::DiscordSinkConfig},
 };
 
 pub struct DiscordSink {
-    config: DiscordReviewSinkConfig,
+    config: DiscordSinkConfig,
 }
 
 impl DiscordSink {
-    pub fn new(config: &Option<DiscordReviewSinkConfig>) -> Result<Self, RigReviewError> {
+    pub fn new(config: &Option<DiscordSinkConfig>) -> Result<Self, RigReviewError> {
         let Some(config) = config else {
             return Err(RigReviewError::MissingConfiguration("discord".into()));
         };
@@ -24,7 +24,7 @@ impl DiscordSink {
 
 #[async_trait::async_trait]
 impl ReviewSink for DiscordSink {
-    async fn output(&self, report: String) -> Result<(), crate::error::RigReviewError> {
+    async fn output(&self, report: String) -> Result<(), RigReviewError> {
         let http = Http::new("");
         let map = json!({"content": report});
         http.execute_webhook(

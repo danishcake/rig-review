@@ -8,7 +8,9 @@ use serde::Deserialize;
 use tokio::sync::Mutex;
 use tokio_retry2::{Retry, RetryError};
 
-use crate::{sink::base::ReviewSink, util::tokio_retry2_utils::RetryStrategyFactory};
+use crate::{
+    error::RigReviewError, sink::base::ReviewSink, util::tokio_retry2_utils::RetryStrategyFactory,
+};
 
 pub struct GitlabReviewSink {
     project_path: String,
@@ -39,7 +41,7 @@ impl GitlabReviewSink {
 
 #[async_trait::async_trait]
 impl ReviewSink for GitlabReviewSink {
-    async fn output(&self, report: String) -> Result<(), crate::error::RigReviewError> {
+    async fn output(&self, report: String) -> Result<(), RigReviewError> {
         // Post comment
         // https://docs.gitlab.com/api/notes/#create-a-merge-request-note
         let endpoint = CreateMergeRequestNote::builder()

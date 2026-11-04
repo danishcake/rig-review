@@ -15,6 +15,7 @@ use rig_review::{
     sink::{
         base::ReviewSink, discord::discord_sink::DiscordSink,
         local_stdout::local_stdout_sink::LocalStdoutSink,
+        mattermost::mattermost_sink::MattermostSink,
     },
     source::{
         base::ReviewSource, gitlab::gitlab_review_source::GitlabReviewSource,
@@ -55,12 +56,14 @@ enum SinkForGitlabSource {
     Gitlab,
     Stdout,
     Discord,
+    Mattermost,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]
 enum SinkForLocalSource {
     Stdout,
     Discord,
+    Mattermost,
 }
 
 #[derive(Debug, Subcommand)]
@@ -139,6 +142,11 @@ async fn main() -> Result<()> {
                             Arc::new(Mutex::new(DiscordSink::new(&config.discord)?));
                         Ok(sink)
                     }
+                    SinkForLocalSource::Mattermost => {
+                        let sink: Arc<Mutex<dyn ReviewSink>> =
+                            Arc::new(Mutex::new(MattermostSink::new(&config.mattermost)?));
+                        Ok(sink)
+                    }
                 })
                 .collect::<Result<Vec<Arc<Mutex<dyn ReviewSink>>>, RigReviewError>>()?;
             (source, sinks)
@@ -162,6 +170,11 @@ async fn main() -> Result<()> {
                     SinkForGitlabSource::Discord => {
                         let sink: Arc<Mutex<dyn ReviewSink>> =
                             Arc::new(Mutex::new(DiscordSink::new(&config.discord)?));
+                        Ok(sink)
+                    }
+                    SinkForGitlabSource::Mattermost => {
+                        let sink: Arc<Mutex<dyn ReviewSink>> =
+                            Arc::new(Mutex::new(MattermostSink::new(&config.mattermost)?));
                         Ok(sink)
                     }
                 })

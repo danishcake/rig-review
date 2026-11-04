@@ -1,10 +1,10 @@
 use serde::Deserialize;
 
-/// Configuration for the DiscordReviewSink
+/// Configuration for the DiscordSink
 /// The fields are derived from a URL like
 /// https://discord.com/api/webhooks/1234567891234567890/aslkdjsfjhlksdjfhkjsdhflkjsdhflksdahflkjadshflkjsdhflkjdsasdskfjsdlk
 #[derive(Debug, Deserialize, Clone)]
-pub struct DiscordReviewSinkConfig {
+pub struct DiscordSinkConfig {
     /// The ID of a webhook. This is the first part of the webhook URL
     pub webhook_id: u64,
 
