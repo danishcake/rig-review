@@ -75,6 +75,16 @@ max_turns = 30
 # Any additional parameters to send to the OpenAI endpoint
 additional_params.reasoning_effort = "low"
 # export RIG_REVIEW__rig_review_engine.additional_params.reasoning_effort=low
+
+# OPTIONAL
+# Completely replace the default prompt
+prompt = "You are a code reviewer..."
+# export RIG_REVIEW__rig_review_engine.prompt="You are a code reviewer..."
+
+# OPTIONAL
+# Append extra text to the default (or overridden) prompt
+extra_prompt = "Summarise the review with a limerick"
+# export RIG_REVIEW__rig_review_engine.extra_prompt="Summarise the review with a limerick"
 ```
 
 ```json

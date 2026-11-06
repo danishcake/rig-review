@@ -90,14 +90,27 @@ impl ReviewEngine for RigReviewEngine {
         // Create hooks
         let logging_hook = LoggingHook::new();
 
+        // Build the prompt
+        let prompt = self.config.prompt.clone();
+        let prompt = if let Some(extra_prompt) = &self.config.extra_prompt {
+            let divider = if prompt.trim_end().ends_with(".") {
+                " "
+            } else {
+                ". "
+            };
+            format!("{prompt}{divider}{extra_prompt}")
+        } else {
+            prompt
+        };
+
         // Create agent
         let agent = AgentBuilder::new(model)
             .tool(get_files_tool)
             .tool(get_file_diff_tool)
             .tool(get_modified_file_tool)
             .add_hook(logging_hook)
-            .preamble(include_str!("prompt.txt"))
-            .default_max_turns(self.config.max_turns.unwrap_or(30));
+            .preamble(&prompt)
+            .default_max_turns(self.config.max_turns);
 
         // Add extra request parameters, if present
         let agent = if let Some(additional_params) = &self.config.additional_params {

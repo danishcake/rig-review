@@ -13,10 +13,26 @@ pub struct RigReviewEngineConfig {
     /// The model to review with
     pub model: String,
 
-    /// The maximum number of turns. Defaults to 30
-    pub max_turns: Option<usize>,
+    /// The maximum number of turns
+    #[serde(default = "default_max_turns")]
+    pub max_turns: usize,
 
     /// Additional parameters to pass the the OpenAI endpoint
     /// For example, reasoning_effort = "low" can be used to control overthing by Qwen models
     pub additional_params: Option<Value>,
+
+    /// If present, replaces the default prompt
+    #[serde(default = "default_prompt")]
+    pub prompt: String,
+
+    /// If present, appended to the prompt
+    pub extra_prompt: Option<String>,
+}
+
+fn default_prompt() -> String {
+    include_str!("prompt.txt").into()
+}
+
+fn default_max_turns() -> usize {
+    30
 }
